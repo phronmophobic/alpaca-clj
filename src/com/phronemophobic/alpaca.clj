@@ -23,8 +23,9 @@
                                              :alpaca
                                              :secret)}))
 (defn account []
-  (client/get (endpoint "/v2/account")
-              (with-auth {})))
+  (:body
+   (client/get (endpoint "/v2/account")
+               (with-auth {:as :json}))))
 
 
 (defn latest-stock-quote [symbols]
@@ -41,22 +42,46 @@
 
 (defn create-order [{:keys [symbol notional]
                      :as order}]
+  (let [time-in-force
+        (if (str/includes? symbol "/")
+          "gtc"
+          "day")]
+   (:body
+    (client/post (endpoint "/v2/orders")
+                 (with-auth
+                   {:content-type :json
+                    :form-params
+                    (merge
+                     {:side "buy"
+                      :type "market"
+                      :time_in_force time-in-force}
+                     order)
+                    :accept :json
+                    :as :json})))))
+
+(defn close-position [{:keys [symbol percent]
+                       :as order}]
   (:body
-   (client/post (endpoint "/v2/orders")
-                (with-auth
-                  {:content-type :json
-                   :form-params
-                   (merge
-                    {:side "buy"
-                     :type "market"
-                     :time_in_force "day"}
-                    order)
-                   :accept :json
-                   :as :json}))))
+   (client/delete (endpoint (str "/v2/positions/" symbol))
+                  (with-auth
+                    {:query-params {:percentage percent}
+                     :as :json
+                     :accept :json}))))
+
+(defn list-crypto-coins []
+  (:body
+   (client/get (endpoint "/v2/assets")
+               (with-auth
+                {:query-params {:asset_class "crypto"}
+                 :as :json
+                 :accept :json}))))
 
 (comment
 
   (create-order {:symbol "VOO"
+                 :notional "1.22"})
+
+  (create-order {:symbol "BTC/USD"
                  :notional "1.22"})
 
   (create-order {:symbol "TSLA"
