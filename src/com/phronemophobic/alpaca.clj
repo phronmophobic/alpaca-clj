@@ -43,7 +43,8 @@
 (defn create-order [{:keys [symbol notional]
                      :as order}]
   (let [time-in-force
-        (if (str/includes? symbol "/")
+        (if (or (str/includes? symbol "/")
+                (str/ends-with? symbol "USD"))
           "gtc"
           "day")]
    (:body
